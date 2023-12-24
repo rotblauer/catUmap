@@ -55,7 +55,15 @@ func parseName(name string) string {
 	return name
 }
 
-func parseStreamPerProperty(reader io.Reader, writer io.Writer, n int, property string, names map[string]bool) {
+func passesAccuracy(accuracy float64, requiredAccuracy float64) bool {
+	return (accuracy > 0 && accuracy < requiredAccuracy) || requiredAccuracy < 0
+}
+
+func validActivity(activity string, require bool) bool {
+	return !require || activity != ""
+}
+
+func parseStreamPerProperty(reader io.Reader, writer io.Writer, n int, property string, names map[string]bool, accuracy float64, requireActivity bool) {
 	dec := json.NewDecoder(reader)
 	m := make(map[string]int)
 	pCount := 0
@@ -70,7 +78,8 @@ func parseStreamPerProperty(reader io.Reader, writer io.Writer, n int, property 
 		switch property {
 		case "Name":
 			t.Properties.Name = parseName(t.Properties.Name)
-			if names[t.Properties.Name] {
+			//if names is empty or contains the name, increment the count
+			if passName(names, t) && passesAccuracy(t.Properties.Accuracy, accuracy) && validActivity(t.Properties.Activity, requireActivity) {
 				m[t.Properties.Name]++
 				if m[t.Properties.Name]%n == 0 {
 					printT(t, writer)
@@ -85,6 +94,10 @@ func parseStreamPerProperty(reader io.Reader, writer io.Writer, n int, property 
 		}
 	}
 	printMap(m, os.Stderr)
+}
+
+func passName(names map[string]bool, t T) bool {
+	return len(names) == 0 || names[t.Properties.Name]
 }
 
 func printT(t T, w io.Writer) {
@@ -103,18 +116,27 @@ func printMap(m map[string]int, w io.Writer) {
 	}
 }
 
-var flagNumber = flag.Int("n", 100, "number to subsample on")
-var flagProperty = flag.String("p", "Name", "property to select on")
+var flagNumber = flag.Int("n", 100, "select every nth")
+var flagProperty = flag.String("p", "Name", "property to select on - select every nth within unique values of this property")
+var flagNames = flag.String("names", "", "names to select on")
+var flagRequiredAccuracy = flag.Float64("min-accuracy", 100, "minimum accuracy to select on, set to -1 to skip")
+var flagRequireActivity = flag.Bool("require-activity", true, "require a valid activity (non-empty)")
 
-// optional argument providing a list of names to select on
-var flagNames = flag.String("names", "rye,ia", "names to select on")
+//example usage:
+//cat /tmp/2019-01-*.json | go run main.go -n 100 -p Name -names kk,ia,rye,pr,jr,ric,mat,jlc -min-accuracy 100 -require-activity=true > /tmp/2019-01-uniq.json
 
 func main() {
 	flag.Parse()
 	//parse the flagNames into a set
+
 	names := make(map[string]bool)
-	for _, name := range regexp.MustCompile(`,`).Split(*flagNames, -1) {
-		names[name] = true
+
+	//if the flagNames is not empty, split on comma and add to the set
+	if *flagNames != "" {
+		for _, name := range regexp.MustCompile(`,`).Split(*flagNames, -1) {
+			names[name] = true
+		}
 	}
-	parseStreamPerProperty(os.Stdin, os.Stdout, *flagNumber, *flagProperty, names)
+
+	parseStreamPerProperty(os.Stdin, os.Stdout, *flagNumber, *flagProperty, names, *flagRequiredAccuracy, *flagRequireActivity)
 }

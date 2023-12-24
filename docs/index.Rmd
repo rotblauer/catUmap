@@ -1,0 +1,50 @@
+---
+title: "CatUMap"
+author: "JL"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(plotly)
+theme_set(theme_bw(10))
+```
+
+```{r cars}
+
+files=list.files(path="../output",full.names = T,pattern = "\\.umap\\.gz$")
+# read all files ending in .umap.gz to a list of data.tables
+umapList <- lapply(files, fread)
+# name the list elements by the file names
+names(umapList) <-basename(files) 
+
+```
+
+## Cat umaps
+
+```{r echo=FALSE,dev='png',dpi=300}
+
+# loop over the name, data.table pairs
+
+for(i in 1:length(umapList)){
+  p <- ggplot(umapList[[i]], aes(x=umap_0, y=umap_1, color=Activity)) + geom_point(alpha=0.5) + ggtitle(paste("Cat UMAP",names(umapList)[i]))
+  print(p)
+}
+
+for (i in 1:length(umapList)) {
+  df <- umapList[[i]]
+  name = names(umapList)[i]
+  p <-
+    ggplot(df, aes(x = umap_0, y = umap_1, color = Activity)) + geom_point(alpha =
+                                                                             0.5) + ggtitle(paste("Cat UMAP", name))
+  print(p)
+  
+  # color by name
+  p <-
+    ggplot(df, aes(x = umap_0, y = umap_1, color = Name)) + geom_point(alpha =
+                                                                         0.5) + ggtitle(paste("Cat UMAP", name))
+}
+
+```
