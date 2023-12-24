@@ -26,7 +26,6 @@ do
     echo "Metric: $metric"
     cat $trimTracksOut \
     |zcat \
-    |awk 'NR % 10 == 0' \
     |.venv/bin/python main.py --metric $metric --output output/$metric.$components.umap.gz --components $components
 
 done
