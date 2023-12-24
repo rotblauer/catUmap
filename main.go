@@ -1,0 +1,110 @@
+package main
+
+import (
+	"encoding/json"
+	"flag"
+	"io"
+	"os"
+	"regexp"
+	"time"
+)
+
+type T struct {
+	Type     string `json:"type"`
+	Id       int    `json:"id"`
+	Geometry struct {
+		Type        string    `json:"type"`
+		Coordinates []float64 `json:"coordinates"`
+	} `json:"geometry"`
+	Properties struct {
+		Accuracy  float64   `json:"Accuracy"`
+		Activity  string    `json:"Activity"`
+		Elevation float64   `json:"Elevation"`
+		Heading   float64   `json:"Heading"`
+		Name      string    `json:"Name"`
+		Notes     string    `json:"Notes"`
+		Pressure  float64   `json:"Pressure"`
+		Speed     float64   `json:"Speed"`
+		Time      time.Time `json:"Time"`
+		UUID      string    `json:"UUID"`
+		UnixTime  int       `json:"UnixTime"`
+		Version   string    `json:"Version"`
+	} `json:"properties"`
+}
+
+// https://github.com/rotblauer/cattracks-split-cats-uniqcell-gz/blob/4e8d1addce091552ac74466873fe4a719605d6af/main.go#L55C1-L66C2
+var aliases = map[*regexp.Regexp]string{
+	regexp.MustCompile(`(?i)(Rye.*|Kitty.*|jl)`):                          "rye",
+	regexp.MustCompile(`(?i)(.*Papa.*|P2|Isaac.*|.*moto.*|iha|ubp52)`):    "ia",
+	regexp.MustCompile(`(?i)(Big.*Ma.*)`):                                 "jr",
+	regexp.MustCompile(`(?i)Kayleigh.*`):                                  "kd",
+	regexp.MustCompile(`(?i)(KK.*|kek)`):                                  "kk",
+	regexp.MustCompile(`(?i)Bob.*`):                                       "rj",
+	regexp.MustCompile(`(?i)(Pam.*|Rathbone.*)`):                          "pr",
+	regexp.MustCompile(`(?i)(Ric|.*A3_Pixel_XL.*|.*marlin-Pixel-222d.*)`): "ric",
+	regexp.MustCompile(`(?i)Twenty7.*`):                                   "mat",
+	regexp.MustCompile(`(?i)(.*Carlomag.*|JLC|jlc)`):                      "jlc",
+}
+
+func parseName(name string) string {
+	for k, v := range aliases {
+		if k.MatchString(name) {
+			return v
+		}
+	}
+	return name
+}
+
+func parseStreamPerProperty(reader io.Reader, writer io.Writer, n int, property string) {
+	dec := json.NewDecoder(reader)
+	m := make(map[string]int)
+	pCount := 0
+	for {
+		var t T
+		if err := dec.Decode(&t); err == io.EOF {
+			break
+		} else if err != nil {
+			panic(err)
+		}
+		//	switch on the property to select on
+		switch property {
+		case "Name":
+			t.Properties.Name = parseName(t.Properties.Name)
+			m[t.Properties.Name]++
+			if m[t.Properties.Name]%n == 0 {
+				printT(t, writer)
+				pCount++
+				if pCount%10000 == 0 {
+					printMap(m, os.Stderr)
+				}
+			}
+		default:
+			panic("invalid property")
+		}
+	}
+	printMap(m, os.Stderr)
+}
+
+func printT(t T, w io.Writer) {
+	enc := json.NewEncoder(w)
+	err := enc.Encode(t)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func printMap(m map[string]int, w io.Writer) {
+	enc := json.NewEncoder(w)
+	err := enc.Encode(m)
+	if err != nil {
+		panic(err)
+	}
+}
+
+var flagNumber = flag.Int("n", 100, "number to subsample on")
+var flagProperty = flag.String("p", "Name", "property to select on")
+
+func main() {
+	flag.Parse()
+	parseStreamPerProperty(os.Stdin, os.Stderr, *flagNumber, *flagProperty)
+}
