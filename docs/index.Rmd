@@ -20,31 +20,48 @@ umapList <- lapply(files, fread)
 # name the list elements by the file names
 names(umapList) <-basename(files) 
 
+# https://umap-learn.readthedocs.io/en/latest/embedding_space.html
+# transformations to 2d
+# x = np.sin(sphere_mapper.embedding_[:, 0]) * np.cos(sphere_mapper.embedding_[:, 1])
+# y = np.sin(sphere_mapper.embedding_[:, 0]) * np.sin(sphere_mapper.embedding_[:, 1])
+# z = np.cos(sphere_mapper.embedding_[:, 0])
+#
+# x = np.arctan2(x, y)
+# y = -np.arccos(z)
 ```
 
 ## Cat umaps
 
 ```{r echo=FALSE,dev='png',dpi=300}
+# set point size to 0.5 for all plots
+size <- 0.1
 
-# loop over the name, data.table pairs
-
-for(i in 1:length(umapList)){
-  p <- ggplot(umapList[[i]], aes(x=umap_0, y=umap_1, color=Activity)) + geom_point(alpha=0.5) + ggtitle(paste("Cat UMAP",names(umapList)[i]))
-  print(p)
-}
 
 for (i in 1:length(umapList)) {
+  # if the name is haversine, apply the transformation
   df <- umapList[[i]]
+  if (grepl("haversine", names(umapList)[i])) {
+    df$x <- sin(df$umap_0) * cos(df$umap_1)
+    df$y <- sin(df$umap_0) * sin(df$umap_1)
+    df$z <- cos(df$umap_0)
+    df$umap_0 <- atan2(df$x, df$y)
+    df$umap_1 <- -acos(df$z)
+  }
   name = names(umapList)[i]
+  # base =
   p <-
     ggplot(df, aes(x = umap_0, y = umap_1, color = Activity)) + geom_point(alpha =
-                                                                             0.5) + ggtitle(paste("Cat UMAP", name))
+                                                                             0.5, size =
+                                                                             size) + ggtitle(paste("Cat UMAP", name))
   print(p)
   
   # color by name
   p <-
     ggplot(df, aes(x = umap_0, y = umap_1, color = Name)) + geom_point(alpha =
-                                                                         0.5) + ggtitle(paste("Cat UMAP", name))
+                                                                         0.5, size =
+                                                                         size) + ggtitle(paste("Cat UMAP", name))
+  print(p)
+  
 }
 
 ```

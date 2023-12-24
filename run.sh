@@ -3,6 +3,7 @@
 # if the first argument is undefined, set it to a default value
 masterjson=${1:-"/Volumes/SandCat/tdata/master.json.gz"}
 trimTracksOut=${2:-"output/output.json.gz"}
+components=${3:-"2"}
 
 
 # if the trimTracksOut file does not exist, create it
@@ -21,19 +22,14 @@ fi
 metrics=("euclidean" "haversine")
 for metric in "${metrics[@]}"
 do
-    components=2
-    # if the name is haversine, set the components to 3
-    if [ "$metric" == "haversine" ]; then
-        components=3
-    fi
+  
     echo "Metric: $metric"
     cat $trimTracksOut \
     |zcat \
-    |awk 'NR % 100 == 0' \
+    |awk 'NR % 10 == 0' \
     |.venv/bin/python main.py --metric $metric --output output/$metric.$components.umap.gz --components $components
 
 done
 
 
 
-# select every 10th line of the output file

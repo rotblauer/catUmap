@@ -59,11 +59,11 @@ func passesAccuracy(accuracy float64, requiredAccuracy float64) bool {
 	return (accuracy > 0 && accuracy < requiredAccuracy) || requiredAccuracy < 0
 }
 
-func validActivity(activity string, require bool) bool {
-	return !require || activity != ""
+func validActivity(activity string, require bool, removeUnknownActivity bool) bool {
+	return !require || (activity != "" && (!removeUnknownActivity || activity != "unknown"))
 }
 
-func parseStreamPerProperty(reader io.Reader, writer io.Writer, n int, property string, names map[string]bool, accuracy float64, requireActivity bool) {
+func parseStreamPerProperty(reader io.Reader, writer io.Writer, n int, property string, names map[string]bool, accuracy float64, requireActivity bool, removeUnknownActivity bool) {
 	dec := json.NewDecoder(reader)
 	m := make(map[string]int)
 	pCount := 0
@@ -79,7 +79,7 @@ func parseStreamPerProperty(reader io.Reader, writer io.Writer, n int, property 
 		case "Name":
 			t.Properties.Name = parseName(t.Properties.Name)
 			//if names is empty or contains the name, increment the count
-			if passName(names, t) && passesAccuracy(t.Properties.Accuracy, accuracy) && validActivity(t.Properties.Activity, requireActivity) {
+			if passName(names, t) && passesAccuracy(t.Properties.Accuracy, accuracy) && validActivity(t.Properties.Activity, requireActivity, removeUnknownActivity) {
 				m[t.Properties.Name]++
 				if m[t.Properties.Name]%n == 0 {
 					printT(t, writer)
@@ -121,6 +121,7 @@ var flagProperty = flag.String("p", "Name", "property to select on - select ever
 var flagNames = flag.String("names", "", "names to select on")
 var flagRequiredAccuracy = flag.Float64("min-accuracy", 100, "minimum accuracy to select on, set to -1 to skip")
 var flagRequireActivity = flag.Bool("require-activity", true, "require a valid activity (non-empty)")
+var flagRemoveUnknownActivity = flag.Bool("remove-unknown-activity", true, "remove unknown activity")
 
 //example usage:
 //cat /tmp/2019-01-*.json | go run main.go -n 100 -p Name -names kk,ia,rye,pr,jr,ric,mat,jlc -min-accuracy 100 -require-activity=true > /tmp/2019-01-uniq.json
@@ -138,5 +139,5 @@ func main() {
 		}
 	}
 
-	parseStreamPerProperty(os.Stdin, os.Stdout, *flagNumber, *flagProperty, names, *flagRequiredAccuracy, *flagRequireActivity)
+	parseStreamPerProperty(os.Stdin, os.Stdout, *flagNumber, *flagProperty, names, *flagRequiredAccuracy, *flagRequireActivity, *flagRemoveUnknownActivity)
 }
