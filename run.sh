@@ -21,6 +21,6 @@ fi
 cat $trimTracksOut \
 |zcat \
 | head -n 500 \
-|python3 main.py
+|.venv/bin/python main.py
 
 

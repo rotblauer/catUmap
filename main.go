@@ -55,7 +55,7 @@ func parseName(name string) string {
 	return name
 }
 
-func parseStreamPerProperty(reader io.Reader, writer io.Writer, n int, property string) {
+func parseStreamPerProperty(reader io.Reader, writer io.Writer, n int, property string, names map[string]bool) {
 	dec := json.NewDecoder(reader)
 	m := make(map[string]int)
 	pCount := 0
@@ -70,12 +70,14 @@ func parseStreamPerProperty(reader io.Reader, writer io.Writer, n int, property 
 		switch property {
 		case "Name":
 			t.Properties.Name = parseName(t.Properties.Name)
-			m[t.Properties.Name]++
-			if m[t.Properties.Name]%n == 0 {
-				printT(t, writer)
-				pCount++
-				if pCount%10000 == 0 {
-					printMap(m, os.Stderr)
+			if names[t.Properties.Name] {
+				m[t.Properties.Name]++
+				if m[t.Properties.Name]%n == 0 {
+					printT(t, writer)
+					pCount++
+					if pCount%10000 == 0 {
+						printMap(m, os.Stderr)
+					}
 				}
 			}
 		default:
@@ -104,7 +106,15 @@ func printMap(m map[string]int, w io.Writer) {
 var flagNumber = flag.Int("n", 100, "number to subsample on")
 var flagProperty = flag.String("p", "Name", "property to select on")
 
+// optional argument providing a list of names to select on
+var flagNames = flag.String("names", "rye,ia", "names to select on")
+
 func main() {
 	flag.Parse()
-	parseStreamPerProperty(os.Stdin, os.Stderr, *flagNumber, *flagProperty)
+	//parse the flagNames into a set
+	names := make(map[string]bool)
+	for _, name := range regexp.MustCompile(`,`).Split(*flagNames, -1) {
+		names[name] = true
+	}
+	parseStreamPerProperty(os.Stdin, os.Stdout, *flagNumber, *flagProperty, names)
 }
