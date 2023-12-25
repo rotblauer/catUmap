@@ -9,10 +9,36 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(data.table)
 library(plotly)
+library(jsonlite)
+library(umap)
 theme_set(theme_bw(10))
 ```
 
-```{r cars}
+```{r }
+df <- fread("../output/raw.tsv.gz")
+
+
+umapOutputFile <- "../output/umap.Rdata"
+if (file.exists(umapOutputFile)) {
+  load(umapOutputFile)
+} else {
+  #
+  umap = umap(
+    df[, c("lat", "lon")],
+    n_neighbors = 15,
+    min_dist = 0.1,
+    metric = "euclidean",
+    verbose = T
+  )
+  df$umap_0 <- umap$layout[, 1]
+  df$umap_1 <- umap$layout[, 2]
+  save(umap, file = umapOutputFile)
+}
+```
+
+
+
+```{r }
 
 files=list.files(path="../output",full.names = T,pattern = "\\.umap\\.gz$")
 # read all files ending in .umap.gz to a list of data.tables
@@ -35,6 +61,7 @@ names(umapList) <-basename(files)
 ```{r echo=FALSE,dev='png',dpi=300}
 # set point size to 0.5 for all plots
 size <- 0.1
+
 
 
 for (i in 1:length(umapList)) {

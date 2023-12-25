@@ -39,7 +39,7 @@ func passesAccuracy(accuracy float64, requiredAccuracy float64) bool {
 }
 
 func validActivity(activity string, require bool, removeUnknownActivity bool) bool {
-	return !require || (activity != "" && (!removeUnknownActivity || activity != "unknown"))
+	return !require || (activity != "" && (!removeUnknownActivity || activity != "Unknown"))
 }
 
 func parseStreamPerProperty(reader io.Reader, writer io.Writer, n int, property string, names map[string]bool, accuracy float64, requireActivity bool, removeUnknownActivity bool) {

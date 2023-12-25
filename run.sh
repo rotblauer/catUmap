@@ -19,16 +19,6 @@ fi
 
 # run main.py on the trimTracksOut file
 
-metrics=("euclidean" "haversine")
-for metric in "${metrics[@]}"
-do
-  
-    echo "Metric: $metric"
-    cat $trimTracksOut \
-    |zcat \
-    |.venv/bin/python main.py --metric $metric --output output/$metric.$components.umap.gz --components $components
-
-done
-
-
-
+cat $trimTracksOut \
+|zcat \
+|.venv/bin/python main.py --metrics "euclidean" "haversine" --output "output/umap.tsv.gz" --components $components --outputRaw "output/raw.tsv.gz"
