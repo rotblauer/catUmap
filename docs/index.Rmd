@@ -11,29 +11,33 @@ library(data.table)
 library(plotly)
 library(jsonlite)
 library(umap)
+library(skimr)
 theme_set(theme_bw(10))
 ```
 
 ```{r }
 df <- fread("../output/raw.tsv.gz")
+skim(df)
+```
 
+```{r }
 
-umapOutputFile <- "../output/umap.Rdata"
-if (file.exists(umapOutputFile)) {
-  load(umapOutputFile)
-} else {
-  #
-  umap = umap(
-    df[, c("lat", "lon")],
-    n_neighbors = 15,
-    min_dist = 0.1,
-    metric = "euclidean",
-    verbose = T
-  )
-  df$umap_0 <- umap$layout[, 1]
-  df$umap_1 <- umap$layout[, 2]
-  save(umap, file = umapOutputFile)
-}
+# umapOutputFile <- "../output/umap.Rdata"
+# if (file.exists(umapOutputFile)) {
+#   load(umapOutputFile)
+# } else {
+#   #
+#   umap = umap(
+#     df[, c("lat", "lon")],
+#     n_neighbors = 15,
+#     min_dist = 0.1,
+#     metric = "euclidean",
+#     verbose = T
+#   )
+#   df$umap_0 <- umap$layout[, 1]
+#   df$umap_1 <- umap$layout[, 2]
+#   save(umap, file = umapOutputFile)
+# }
 ```
 
 

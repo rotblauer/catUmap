@@ -30,13 +30,12 @@ def parse_features(input_stream):
 # returns a pandas dataframe with the UMAP results
 # https://umap-learn.readthedocs.io/en/latest/embedding_space.html/
 
-# This implementation of umap is very slow even with apparent n_jobs=8 and low_memory=False
-# punting to R
+
 def run_umap(df, columns, metric_umap, components):
     # create a new dataframe with just the columns of interest
     print("running umap on columns " + str(columns) + " and lat/lon")
     embedding = umap.UMAP(n_components=components, output_metric=metric,
-                          verbose=True, n_jobs=8, low_memory=False).fit_transform(
+                          verbose=True, low_memory=False, transform_seed=42).fit_transform(
         df[columns + ['lat', 'lon']])
 
     # name the columns of the UMAP results

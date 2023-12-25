@@ -18,7 +18,9 @@ else
 fi
 
 # run main.py on the trimTracksOut file
+# use awk to select every 10th line
 
 cat $trimTracksOut \
 |zcat \
+| awk 'NR % 10 == 0' \
 |.venv/bin/python main.py --metrics "euclidean" "haversine" --output "output/umap.tsv.gz" --components $components --outputRaw "output/raw.tsv.gz"
