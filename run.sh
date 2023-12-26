@@ -4,6 +4,8 @@
 masterjson=${1:-"/Volumes/SandCat/tdata/master.json.gz"}
 trimTracksOut=${2:-"output/output.json.gz"}
 components=${3:-"2"}
+n_neighbors=${4:-"50"}
+
 
 
 # if the trimTracksOut file does not exist, create it
@@ -20,7 +22,13 @@ fi
 # run main.py on the trimTracksOut file
 # use awk to select every 10th line
 
+# | awk 'NR % 10 == 0' \
+
 cat $trimTracksOut \
 |zcat \
-| awk 'NR % 10 == 0' \
-|.venv/bin/python main.py --metrics "euclidean" "haversine" --output "output/umap.tsv.gz" --components $components --outputRaw "output/raw.tsv.gz"
+|.venv/bin/python main.py \
+--n_neighbors $n_neighbors \
+--metrics "euclidean" "haversine" \
+--output "output/$n_neighbors.$components.umap.tsv.gz" \
+--components $components \
+--outputRaw "output/raw.tsv.gz"

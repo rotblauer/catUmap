@@ -31,10 +31,10 @@ def parse_features(input_stream):
 # https://umap-learn.readthedocs.io/en/latest/embedding_space.html/
 
 
-def run_umap(df, columns, metric_umap, components):
+def run_umap(df, columns, metric_umap, components, n_neighbors):
     # create a new dataframe with just the columns of interest
     print("running umap on columns " + str(columns) + " and lat/lon")
-    embedding = umap.UMAP(n_components=components, output_metric=metric,
+    embedding = umap.UMAP(n_components=components, output_metric=metric_umap,
                           verbose=True, low_memory=False, transform_seed=42).fit_transform(
         df[columns + ['lat', 'lon']])
 
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     # argument whether to save the raw data
     parser.add_argument('--outputRaw', type=str, default=None)
     parser.add_argument('--output', type=str, default='output/out.umap.tsv.gz')
-
+    parser.add_argument('--n_neighbors', type=int, default=15)
     # parse the arguments
     args = parser.parse_args()
 
@@ -64,6 +64,6 @@ if __name__ == '__main__':
         # write the dataframe to a tsv.gz file
         iDf.to_csv(args.outputRaw, sep='\t', compression='gzip', index=False)
     for metric in args.metrics:
-        iDf = run_umap(iDf, args.columns, metric, args.components)
+        iDf = run_umap(iDf, args.columns, metric, args.components, args.n_neighbors)
     # write the dataframe to a tsv.gz file
     iDf.to_csv(args.output, sep='\t', compression='gzip', index=False)
