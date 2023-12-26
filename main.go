@@ -7,6 +7,8 @@ import (
 	"os"
 	"regexp"
 	"time"
+
+	catnames "github.com/rotblauer/cattracks-names"
 )
 
 type T struct {
@@ -32,29 +34,6 @@ type T struct {
 	} `json:"properties"`
 }
 
-// https://github.com/rotblauer/cattracks-split-cats-uniqcell-gz/blob/4e8d1addce091552ac74466873fe4a719605d6af/main.go#L55C1-L66C2
-var aliases = map[*regexp.Regexp]string{
-	regexp.MustCompile(`(?i)(Rye.*|Kitty.*|jl)`):                          "rye",
-	regexp.MustCompile(`(?i)(.*Papa.*|P2|Isaac.*|.*moto.*|iha|ubp52)`):    "ia",
-	regexp.MustCompile(`(?i)(Big.*Ma.*)`):                                 "jr",
-	regexp.MustCompile(`(?i)Kayleigh.*`):                                  "kd",
-	regexp.MustCompile(`(?i)(KK.*|kek)`):                                  "kk",
-	regexp.MustCompile(`(?i)Bob.*`):                                       "rj",
-	regexp.MustCompile(`(?i)(Pam.*|Rathbone.*)`):                          "pr",
-	regexp.MustCompile(`(?i)(Ric|.*A3_Pixel_XL.*|.*marlin-Pixel-222d.*)`): "ric",
-	regexp.MustCompile(`(?i)Twenty7.*`):                                   "mat",
-	regexp.MustCompile(`(?i)(.*Carlomag.*|JLC|jlc)`):                      "jlc",
-}
-
-func parseName(name string) string {
-	for k, v := range aliases {
-		if k.MatchString(name) {
-			return v
-		}
-	}
-	return name
-}
-
 func passesAccuracy(accuracy float64, requiredAccuracy float64) bool {
 	return (accuracy > 0 && accuracy < requiredAccuracy) || requiredAccuracy < 0
 }
@@ -77,8 +56,8 @@ func parseStreamPerProperty(reader io.Reader, writer io.Writer, n int, property 
 		//	switch on the property to select on
 		switch property {
 		case "Name":
-			t.Properties.Name = parseName(t.Properties.Name)
-			//if names is empty or contains the name, increment the count
+			t.Properties.Name = catnames.SanitizeName(catnames.AliasOrName(t.Properties.Name))
+			// if names is empty or contains the name, increment the count
 			if passName(names, t) && passesAccuracy(t.Properties.Accuracy, accuracy) && validActivity(t.Properties.Activity, requireActivity, removeUnknownActivity) {
 				m[t.Properties.Name]++
 				if m[t.Properties.Name]%n == 0 {
@@ -123,16 +102,16 @@ var flagRequiredAccuracy = flag.Float64("min-accuracy", 100, "minimum accuracy t
 var flagRequireActivity = flag.Bool("require-activity", true, "require a valid activity (non-empty)")
 var flagRemoveUnknownActivity = flag.Bool("remove-unknown-activity", true, "remove unknown activity")
 
-//example usage:
-//cat /tmp/2019-01-*.json | go run main.go -n 100 -p Name -names kk,ia,rye,pr,jr,ric,mat,jlc -min-accuracy 100 -require-activity=true > /tmp/2019-01-uniq.json
+// example usage:
+// cat /tmp/2019-01-*.json | go run main.go -n 100 -p Name -names kk,ia,rye,pr,jr,ric,mat,jlc -min-accuracy 100 -require-activity=true > /tmp/2019-01-uniq.json
 
 func main() {
 	flag.Parse()
-	//parse the flagNames into a set
+	// parse the flagNames into a set
 
 	names := make(map[string]bool)
 
-	//if the flagNames is not empty, split on comma and add to the set
+	// if the flagNames is not empty, split on comma and add to the set
 	if *flagNames != "" {
 		for _, name := range regexp.MustCompile(`,`).Split(*flagNames, -1) {
 			names[name] = true
