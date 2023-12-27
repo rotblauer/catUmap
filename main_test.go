@@ -1,0 +1,55 @@
+package main
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/tidwall/gjson"
+)
+
+// TestGJSONQuery tests the gjson query syntax, which assumes a hacky conversion of each line into a json array.
+// https://github.com/tidwall/gjson/blob/master/gjson_test.go#L1648
+func TestGJSONQuery(t *testing.T) {
+	type queryCase struct {
+		line   string
+		query  string
+		exists bool
+	}
+	lines := []string{
+		`{"type":"Feature","id":1,"geometry":{"type":"Point","coordinates":[-93.25535583496094,44.98938751220703]},"properties":{"Accuracy":16.58573341369629,"Activity":"Stationary","Elevation":266.4858703613281,"Heading":349.74163818359375,"Name":"Rye13","Pressure":94.55844116210938,"Speed":0,"Time":"2023-12-08T10:04:09.017Z","UUID":"05C63745-BFA3-4DE3-AF2F-CDE2173C0E11","UnixTime":1702029849,"Version":"V.customizableCatTrackHat"}}
+`,
+		`{"type":"Feature","id":1,"geometry":{"type":"Point","coordinates":[-93.25735583496094,44.98638751220703]},"properties":{"Accuracy":101.7849,"Activity":"Running","Elevation":256.4858703613281,"Heading":347.74163818359375,"Name":"Rye13","Pressure":95.55844116210938,"Speed":0,"Time":"2023-12-08T10:04:10.017Z","UUID":"05C63745-BFA3-4DE3-AF2F-CDE2173C0E11","UnixTime":1702029850,"Version":"V.customizableCatTrackHat"}
+`,
+	}
+	queryCases := []queryCase{
+		{
+			line:   lines[0],
+			query:  `#[properties.Accuracy<100]`,
+			exists: true,
+		},
+		{
+			line:   lines[1],
+			query:  `#[properties.Accuracy<100]`,
+			exists: false,
+		},
+
+		{
+			line:   lines[0],
+			query:  `#[properties.Activity="Running"]`,
+			exists: false,
+		},
+		{
+			line:   lines[1],
+			query:  `#[properties.Activity="Running"]`,
+			exists: true,
+		},
+	}
+
+	for _, c := range queryCases {
+		result := gjson.Get(fmt.Sprintf("[%s]", c.line), c.query)
+		t.Logf("%s: %q (exists=%v)", c.query, result, result.Exists())
+		if result.Exists() != c.exists {
+			t.Errorf("expected %v, got %v", c.exists, result.Exists())
+		}
+	}
+}
