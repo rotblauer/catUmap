@@ -1,14 +1,20 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
+	"errors"
 	"flag"
+	"fmt"
 	"io"
+	"log"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	catnames "github.com/rotblauer/cattracks-names"
+	"github.com/tidwall/gjson"
 )
 
 type T struct {
@@ -109,6 +115,11 @@ func main() {
 	flag.Parse()
 	// parse the flagNames into a set
 
+	if len(flag.Args()) > 0 && flag.Args()[0] == "filter" {
+		filterStream(os.Stdin, os.Stdout, splitFlagStringSlice(*flagMatchAll), splitFlagStringSlice(*flagMatchAny), splitFlagStringSlice(*flagMatchNone))
+		return
+	}
+
 	names := make(map[string]bool)
 
 	// if the flagNames is not empty, split on comma and add to the set
@@ -119,4 +130,69 @@ func main() {
 	}
 
 	parseStreamPerProperty(os.Stdin, os.Stdout, *flagNumber, *flagProperty, names, *flagRequiredAccuracy, *flagRequireActivity, *flagRemoveUnknownActivity)
+}
+
+var flagMatchAll = flag.String("match-all", "", "match all of these properties (gjson syntax, comma separated queries)")
+var flagMatchAny = flag.String("match-any", "", "match any of these properties (gjson syntax, comma separated queries)")
+var flagMatchNone = flag.String("match-none", "", "match none of these properties (gjson syntax, comma separated queries)")
+var errInvalidMatchAll = errors.New("invalid match-all")
+var errInvalidMatchAny = errors.New("invalid match-any")
+var errInvalidMatchNone = errors.New("invalid match-none")
+
+func filterStream(reader io.Reader, writer io.Writer, matchAll []string, matchAny []string, matchNone []string) {
+	breader := bufio.NewReader(reader)
+	bwriter := bufio.NewWriter(writer)
+
+readLoop:
+	for {
+		read, err := breader.ReadBytes('\n')
+		if err != nil {
+			if errors.Is(err, os.ErrClosed) || errors.Is(err, io.EOF) {
+				break
+			}
+			log.Fatalln(err)
+		}
+		if err := filter(read, matchAll, matchAny, matchNone); err != nil {
+			// log.Println(err)
+			continue readLoop
+		}
+		bwriter.Write(read)
+		bwriter.Flush()
+	}
+}
+
+// filter filters some read line on the matchAll, matchAny, and matchNone queries.
+// These queries should be written in GJSON query syntax.
+// https://github.com/tidwall/gjson/blob/master/SYNTAX.md
+func filter(read []byte, matchAll []string, matchAny []string, matchNone []string) error {
+	for _, query := range matchAll {
+		if !gjson.GetBytes(read, query).Exists() {
+			return fmt.Errorf("%w: %s", errInvalidMatchAll, query)
+		}
+	}
+
+	didMatchAny := false
+	for _, query := range matchAny {
+		if gjson.GetBytes(read, query).Exists() {
+			didMatchAny = true
+			break
+		}
+	}
+	if !didMatchAny {
+		return fmt.Errorf("%w: %s", errInvalidMatchAny, matchAny)
+	}
+
+	for _, query := range matchNone {
+		if gjson.GetBytes(read, query).Exists() {
+			return fmt.Errorf("%w: %s", errInvalidMatchNone, query)
+		}
+	}
+	return nil
+}
+
+func splitFlagStringSlice(s string) []string {
+	if s == "" {
+		return []string{}
+	}
+	return strings.Split(s, ",")
 }
