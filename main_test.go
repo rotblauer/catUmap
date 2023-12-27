@@ -22,27 +22,21 @@ func TestGJSONQuery(t *testing.T) {
 `,
 	}
 	queryCases := []queryCase{
-		{
-			line:   lines[0],
-			query:  `#[properties.Accuracy<100]`,
-			exists: true,
-		},
-		{
-			line:   lines[1],
-			query:  `#[properties.Accuracy<100]`,
-			exists: false,
-		},
+		{lines[0], `#[properties.Accuracy<100]`, true},
+		{lines[1], `#[properties.Accuracy<100]`, false},
 
-		{
-			line:   lines[0],
-			query:  `#[properties.Activity="Running"]`,
-			exists: false,
-		},
-		{
-			line:   lines[1],
-			query:  `#[properties.Activity="Running"]`,
-			exists: true,
-		},
+		{lines[0], `#[properties.Activity="Running"]`, false},
+		{lines[1], `#[properties.Activity="Running"]`, true},
+
+		/*
+			Please note that prior to v1.3.0, queries used the #[...] brackets. This was changed in v1.3.0 as to avoid confusion with the new multipath syntax. For backwards compatibility, #[...] will continue to work until the next major release.
+			https://github.com/tidwall/gjson/blob/master/SYNTAX.md#queries
+		*/
+		{lines[0], `#(properties.Accuracy<100)`, true},
+		{lines[1], `#(properties.Accuracy<100)`, false},
+
+		{lines[0], `#(properties.Activity="Running")`, false},
+		{lines[1], `#(properties.Activity="Running")`, true},
 	}
 
 	for _, c := range queryCases {
