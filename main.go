@@ -113,6 +113,7 @@ var flagRemoveUnknownActivity = flag.Bool("remove-unknown-activity", true, "remo
 
 func main() {
 	flag.Parse()
+
 	// parse the flagNames into a set
 
 	if len(flag.Args()) > 0 && flag.Args()[0] == "filter" {
@@ -166,12 +167,12 @@ readLoop:
 // https://github.com/tidwall/gjson/blob/master/SYNTAX.md
 func filter(read []byte, matchAll []string, matchAny []string, matchNone []string) error {
 	for _, query := range matchAll {
-		if !gjson.GetBytes(read, query).Exists() {
+		if res := gjson.GetBytes(read, query); !res.Exists() {
 			return fmt.Errorf("%w: %s", errInvalidMatchAll, query)
 		}
 	}
 
-	didMatchAny := false
+	didMatchAny := len(matchAny) <= 0
 	for _, query := range matchAny {
 		if gjson.GetBytes(read, query).Exists() {
 			didMatchAny = true
