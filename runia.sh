@@ -18,15 +18,12 @@ if [ ! -f "$trimTracksOut" ]; then
   set -x
   # https://github.com/tidwall/gjson/blob/master/SYNTAX.md
   zcat $masterjson \
-  |catnames-cli modify --name-attribute 'properties.Name' --sanitize true \
-  |go run main.go \
+  |./bin/cattracks-names-cli modify --name-attribute 'properties.Name' --sanitize true \
+  |./bin/cattracks-filter-gjson \
     --match-all '#(properties.Accuracy<10),#(properties.Activity!=""),#(properties.Activity!="unknown")' \
     --match-any '#(properties.Name="ia"),#(properties.Name="rye")' \
     filter \
   |gzip  > $trimTracksOut
-#     --match-none '#(properties.Activity="unknown")' \
-#     |tail -500
-#     exit 0
 
 else
     echo "File $trimTracksOut already exists"
@@ -40,9 +37,8 @@ for metric in "${metrics[@]}"
 do
 
     echo "Metric: $metric"
-    cat $trimTracksOut \
-    |zcat \
-    |.venv/bin/python main.py --metric $metric --output output/$metric.$components.umap.gz --components $components
+    zcat $trimTracksOut \
+    |python3 main.py --metric $metric --output output/$metric.$components.umap.gz --components $components
 
 done
 

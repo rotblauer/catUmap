@@ -167,19 +167,21 @@ readLoop:
 // https://github.com/tidwall/gjson/blob/master/SYNTAX.md
 func filter(read []byte, matchAll []string, matchAny []string, matchNone []string) error {
 
-	// Here we hack the line into an array containing only this datapoint.
-	// This allows us to use the GJSON query syntax, which is designed for use with arrays, not single objects.
-	readAsArray := []byte(fmt.Sprintf("[%s]", string(read)))
+	if !gjson.ParseBytes(read).IsArray() {
+		// Here we hack the line into an array containing only this datapoint.
+		// This allows us to use the GJSON query syntax, which is designed for use with arrays, not single objects.
+		read = []byte(fmt.Sprintf("[%s]", string(read)))
+	}
 
 	for _, query := range matchAll {
-		if res := gjson.GetBytes(readAsArray, query); !res.Exists() {
+		if res := gjson.GetBytes(read, query); !res.Exists() {
 			return fmt.Errorf("%w: %s", errInvalidMatchAll, query)
 		}
 	}
 
 	didMatchAny := len(matchAny) == 0
 	for _, query := range matchAny {
-		if gjson.GetBytes(readAsArray, query).Exists() {
+		if gjson.GetBytes(read, query).Exists() {
 			didMatchAny = true
 			break
 		}
@@ -189,7 +191,7 @@ func filter(read []byte, matchAll []string, matchAny []string, matchNone []strin
 	}
 
 	for _, query := range matchNone {
-		if gjson.GetBytes(readAsArray, query).Exists() {
+		if gjson.GetBytes(read, query).Exists() {
 			return fmt.Errorf("%w: %s", errInvalidMatchNone, query)
 		}
 	}
