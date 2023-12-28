@@ -3,7 +3,7 @@ import json
 import sys
 
 import geopandas
-import umap as umap
+import umap.umap_ as umap
 import pandas
 
 
