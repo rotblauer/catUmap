@@ -9,16 +9,22 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(data.table)
 library(plotly)
+library(skimr)
+library(scales)
 theme_set(theme_bw(10))
 ```
 
-```{r cars}
+```{r }
 
-files=list.files(path="../output",full.names = T,pattern = "\\.umap\\.gz$")
-# read all files ending in .umap.gz to a list of data.tables
-umapList <- lapply(files, fread)
-# name the list elements by the file names
-names(umapList) <-basename(files) 
+df <- fread("../output/50.2.umap.tsv.gz")
+# df$latScale=squish(scale(df$lat),-2,2)
+# df$lonScale = squish(scale(df$lon),-2,2)
+# map the lat lon to US states
+library(maps)
+library(mapdata)
+
+metricTypes <- c("euclidean", "haversine")
+
 
 # https://umap-learn.readthedocs.io/en/latest/embedding_space.html
 # transformations to 2d
@@ -30,6 +36,13 @@ names(umapList) <-basename(files)
 # y = -np.arccos(z)
 ```
 
+## summary
+
+```{r}
+skim(df)
+
+```
+
 ## Cat umaps
 
 ```{r echo=FALSE,dev='png',dpi=300}
@@ -37,31 +50,54 @@ names(umapList) <-basename(files)
 size <- 0.1
 
 
-for (i in 1:length(umapList)) {
-  # if the name is haversine, apply the transformation
-  df <- umapList[[i]]
-  if (grepl("haversine", names(umapList)[i])) {
-    df$x <- sin(df$umap_0) * cos(df$umap_1)
-    df$y <- sin(df$umap_0) * sin(df$umap_1)
-    df$z <- cos(df$umap_0)
+for (metricType in metricTypes) {
+  umap_0 = paste0("umap_", metricType, "0")
+  umap_1 = paste0("umap_", metricType, "1")
+  if (metricType == "haversine") {
+    df$x <- sin(df[, ..umap_0]) * cos(df[, ..umap_1])
+    df$y <- sin(df[, ..umap_0]) * sin(df[, ..umap_1])
+    df$z <- cos(df[, ..umap_0])
+    
     df$umap_0 <- atan2(df$x, df$y)
     df$umap_1 <- -acos(df$z)
+  } else{
+    df$umap_0 <- df[, ..umap_0]
+    df$umap_1 <- df[, ..umap_1]
   }
-  name = names(umapList)[i]
   # base =
   p <-
     ggplot(df, aes(x = umap_0, y = umap_1, color = Activity)) + geom_point(alpha =
                                                                              0.5, size =
-                                                                             size) + ggtitle(paste("Cat UMAP", name))
+                                                                             size) + ggtitle(paste("Cat UMAP", metricType))
+  # ignore the alpha in the legend
+  p <-p + guides(color = guide_legend(override.aes = list(alpha = 1,size = 2)))
   print(p)
   
   # color by name
   p <-
     ggplot(df, aes(x = umap_0, y = umap_1, color = Name)) + geom_point(alpha =
                                                                          0.5, size =
-                                                                         size) + ggtitle(paste("Cat UMAP", name))
+                                                                         size) + ggtitle(paste("Cat UMAP", metricType))
+  p <- p + guides(color = guide_legend(override.aes = list(alpha = 1,size = 2)))
   print(p)
   
+   # color by latitutde
+  p <-
+    ggplot(df, aes(x = umap_0, y = umap_1, color = latScale)) + geom_point(alpha =
+                                                                         1, size =
+                                                                         size) + ggtitle(paste("Cat UMAP", metricType))
+  # add viridis color scale
+  p <- p + scale_color_viridis_c()
+  print(p)
+  
+  # color by longitude
+  p <-
+    ggplot(df, aes(x = umap_0, y = umap_1, color = lonScale)) + geom_point(alpha =
+                                                                        1, size =
+                                                                        size) + ggtitle(paste("Cat UMAP", metricType))
+  # add viridis color scale
+  p <- p + scale_color_viridis_c()
+  print(p)
 }
 
 ```

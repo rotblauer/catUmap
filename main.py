@@ -4,7 +4,6 @@ import sys
 
 import geopandas
 import umap.umap_ as umap
-import pandas
 
 
 # example usage:
@@ -22,31 +21,26 @@ def parse_features(input_stream):
     # add lat and lon columns
     df['lat'] = df.geometry.y
     df['lon'] = df.geometry.x
-
+    # remove the geometry column
+    df = df.drop(columns=['geometry'])
     return df
-
-
-# make sure that all columns of interest exist in the dataframe
-def check_columns(columns, df):
-    for column in columns:
-        # if the column does not exist in the dataframe, throw an error
-        if column not in df.columns:
-            raise ValueError('Column ' + column + ' not found in dataframe')
 
 
 # run UMAP on the columns of interest and the lat and lon columns
 # returns a pandas dataframe with the UMAP results
 # https://umap-learn.readthedocs.io/en/latest/embedding_space.html/
-def run_umap(df, columns, metric, components):
+
+
+def run_umap(df, columns, metric_umap, components, n_neighbors):
     # create a new dataframe with just the columns of interest
     print("running umap on columns " + str(columns) + " and lat/lon")
-    embedding = umap.UMAP(n_components=components, output_metric=metric,
-                          verbose=True, n_jobs=8).fit_transform(
+    embedding = umap.UMAP(n_components=components, output_metric=metric_umap,
+                          verbose=True, low_memory=False, transform_seed=42).fit_transform(
         df[columns + ['lat', 'lon']])
 
     # name the columns of the UMAP results
     for i in range(components):
-        df['umap_' + str(i)] = embedding[:, i]
+        df['umap_' + metric_umap + str(i)] = embedding[:, i]
     return df
 
 
@@ -56,14 +50,20 @@ if __name__ == '__main__':
         description='Summarizes the tracks in a json file using UMAP on the columns of interest')
     # add the column argument with a default value
     parser.add_argument('--columns', nargs='+', default=[])
-    # specify the output file
-    parser.add_argument('--output', type=str, default='output/out.umap.tsv.gz')
-    parser.add_argument('--metric', type=str, default='euclidean')  # 'euclidean' or 'haversine'
+    parser.add_argument('--metrics', nargs='+', default=["euclidean", "haversine"])
     parser.add_argument('--components', type=int, default=2)  # 2 or 3
+    # argument whether to save the raw data
+    parser.add_argument('--outputRaw', type=str, default=None)
+    parser.add_argument('--output', type=str, default='output/out.umap.tsv.gz')
+    parser.add_argument('--n_neighbors', type=int, default=15)
     # parse the arguments
     args = parser.parse_args()
+
     iDf = parse_features(sys.stdin)
-    check_columns(args.columns, iDf)
-    oDf = run_umap(iDf, args.columns, args.metric, args.components)
+    if args.outputRaw is not None:
+        # write the dataframe to a tsv.gz file
+        iDf.to_csv(args.outputRaw, sep='\t', compression='gzip', index=False)
+    for metric in args.metrics:
+        iDf = run_umap(iDf, args.columns, metric, args.components, args.n_neighbors)
     # write the dataframe to a tsv.gz file
-    oDf.to_csv(args.output, sep='\t', compression='gzip', index=False)
+    iDf.to_csv(args.output, sep='\t', compression='gzip', index=False)
