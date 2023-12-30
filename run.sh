@@ -5,26 +5,26 @@ masterjson=${1:-"/Volumes/SandCat/tdata/master.json.gz"}
 trimTracksOut=${2:-"output/output.json.gz"}
 components=${3:-"2"}
 n_neighbors=${4:-"50"}
+n_epochs=${5:-"10"}
+
 
 
 
 # if the trimTracksOut file does not exist, create it
 if [ ! -f "$trimTracksOut" ]; then
-    cat $masterjson \
-    |zcat \
-    |go run main.go  -names "rye,ia" \
-    |gzip  > $trimTracksOut
 
-# https://github.com/tidwall/gjson/blob/master/SYNTAX.md
-#
-#   zcat $masterjson \
-#   |catnames-cli modify --name-attribute 'properties.Name' --sanitize true \
-#   |go run main.go \
-#     filter \
-#     --match-all 'properties.Accuracy<100' \
-#     --match-any 'properties.Name=="ia",properties.Name=="rye"' \
-#     --match-none 'properties.Activity=="",properties.Activity=="unknown"' \
-#   |gzip  > $trimTracksOut
+# 👍 👍 👍 👍 👍 👍👍 👍 👍 👍 👍 👍👍 👍 👍 👍 👍 👍👍 👍 👍 👍 👍 👍 
+# https://github.com/tidwall/gjson/blob/master/SYNTAX.md 👍 👍 👍 👍 👍 👍
+# 👍 👍 👍 👍 👍 👍👍 👍 👍 👍 👍 👍👍 👍 👍 👍 👍 👍👍 👍 👍 👍 👍 👍 
+
+  zcat $masterjson \
+  |catnames-cli modify --name-attribute 'properties.Name' --sanitize true \
+  |go run main.go \
+    filter \
+    --match-all 'properties.Accuracy<100' \
+    --match-any 'properties.Name=="ia",properties.Name=="rye"' \
+    --match-none 'properties.Activity=="",properties.Activity=="unknown"' \
+  |gzip  > $trimTracksOut
 
 else
     echo "File $trimTracksOut already exists"
@@ -35,12 +35,16 @@ fi
 # use awk to select every 10th line
 
 # | awk 'NR % 10 == 0' \
+# --metrics "euclidean" "haversine" \
 
 cat $trimTracksOut \
 |zcat \
+| awk 'NR % 10 == 0' \
 |.venv/bin/python main.py \
 --n_neighbors $n_neighbors \
---metrics "euclidean" "haversine" \
+--metrics  "haversine" \
 --output "output/$n_neighbors.$components.umap.tsv.gz" \
 --components $components \
---outputRaw "output/raw.tsv.gz"
+--outputRaw "output/raw.tsv.gz" \
+--n_epochs $n_epochs \
+--n_neighbors $n_neighbors
