@@ -20,10 +20,9 @@ if [ ! -f "$trimTracksOut" ]; then
   zcat $masterjson \
   |catnames-cli modify --name-attribute 'properties.Name' --sanitize true \
   |go run main.go \
+    --match-all '#(properties.Accuracy<10),#(properties.Activity!=""),#(properties.Activity!="unknown")' \
+    --match-any '#(properties.Name="ia"),#(properties.Name="rye")' \
     filter \
-    --match-all 'properties.Accuracy<100' \
-    --match-any 'properties.Name=="ia",properties.Name=="rye"' \
-    --match-none 'properties.Activity=="",properties.Activity=="unknown"' \
   |gzip  > $trimTracksOut
 
 else
