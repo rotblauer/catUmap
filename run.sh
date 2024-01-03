@@ -15,7 +15,8 @@ if [ ! -f "$trimTracksOut" ]; then
 
 # 👍 👍 👍 👍 👍 👍👍 👍 👍 👍 👍 👍👍 👍 👍 👍 👍 👍👍 👍 👍 👍 👍 👍 
 # https://github.com/tidwall/gjson/blob/master/SYNTAX.md 👍 👍 👍 👍 👍 👍
-# 👍 👍 👍 👍 👍 👍👍 👍 👍 👍 👍 👍👍 👍 👍 👍 👍 👍👍 👍 👍 👍 👍 👍 
+# 👍 👍 👍 👍 👍 👍👍 👍 👍 👍 👍 👍👍 👍 👍 👍 👍 👍👍 👍 👍 👍 👍 👍
+# catnames-cli: https://github.com/rotblauer/cattracks-names
 
   zcat $masterjson \
   |catnames-cli modify --name-attribute 'properties.Name' --sanitize true \
