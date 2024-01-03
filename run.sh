@@ -42,9 +42,10 @@ cat $trimTracksOut \
 | awk 'NR % 10 == 0' \
 |.venv/bin/python main.py \
 --n_neighbors $n_neighbors \
---metrics  "haversine" \
+--metrics "euclidean" "haversine" \
 --output "output/$n_neighbors.$components.umap.tsv.gz" \
 --components $components \
 --outputRaw "output/raw.tsv.gz" \
 --n_epochs $n_epochs \
---n_neighbors $n_neighbors
+--n_neighbors $n_neighbors \
+--standardize
