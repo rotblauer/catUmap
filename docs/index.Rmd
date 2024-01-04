@@ -46,7 +46,7 @@ skim(df)
 
 ## Cat umaps
 
-```{r echo=FALSE,dev='png',dpi=300}
+```{r echo=FALSE,dev='jpeg',dpi=300}
 # set point size to 0.5 for all plots
 size <- 0.1
 
@@ -82,31 +82,6 @@ for (metricType in metricTypes) {
   p <- p + guides(color = guide_legend(override.aes = list(alpha = 1,size = 2)))
   print(p)
   
-   # color by latitutde
-  p <-
-    ggplot(df, aes(x = umap_0, y = umap_1, color = latScale)) + geom_point(alpha =
-                                                                         1, size =
-                                                                         size) + ggtitle(paste("Cat UMAP", metricType))
-  # add viridis color scale
-  p <- p + scale_color_viridis_c()
-  print(p)
-  
-  # color by longitude
-  p <-
-    ggplot(df, aes(x = umap_0, y = umap_1, color = lonScale)) + geom_point(alpha =
-                                                                        1, size =
-                                                                        size) + ggtitle(paste("Cat UMAP", metricType))
-  # add viridis color scale
-  p <- p + scale_color_viridis_c()
-  print(p)
-  
-   p <-
-    ggplot(df, aes(x = umap_0, y = umap_1, color = SpeedScale)) + geom_point(alpha =
-                                                                        1, size =
-                                                                        size) + ggtitle(paste("Cat UMAP", metricType))
-  # add viridis color scale
-  p <- p + scale_color_viridis_c()
-  print(p)
 }
 
 ```
