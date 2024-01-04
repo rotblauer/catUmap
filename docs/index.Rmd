@@ -17,8 +17,9 @@ theme_set(theme_bw(10))
 ```{r }
 
 df <- fread("../output/50.2.umap.tsv.gz")
-# df$latScale=squish(scale(df$lat),-2,2)
-# df$lonScale = squish(scale(df$lon),-2,2)
+df$latScale=squish(scale(df$lat),-2,2)
+df$lonScale = squish(scale(df$lon),-2,2)
+df$SpeedScale = squish(scale(df$Speed),0,50)
 # map the lat lon to US states
 library(maps)
 library(mapdata)
@@ -93,6 +94,14 @@ for (metricType in metricTypes) {
   # color by longitude
   p <-
     ggplot(df, aes(x = umap_0, y = umap_1, color = lonScale)) + geom_point(alpha =
+                                                                        1, size =
+                                                                        size) + ggtitle(paste("Cat UMAP", metricType))
+  # add viridis color scale
+  p <- p + scale_color_viridis_c()
+  print(p)
+  
+   p <-
+    ggplot(df, aes(x = umap_0, y = umap_1, color = SpeedScale)) + geom_point(alpha =
                                                                         1, size =
                                                                         size) + ggtitle(paste("Cat UMAP", metricType))
   # add viridis color scale

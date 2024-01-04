@@ -5,10 +5,10 @@ masterjson=${1:-"/Volumes/SandCat/tdata/master.json.gz"}
 trimTracksOut=${2:-"output/output.json.gz"}
 components=${3:-"2"}
 n_neighbors=${4:-"50"}
-n_epochs=${5:-"10"}
+n_epochs=${5:-"200"}
 
-
-
+# if catnames-cli is on the PATH, use it otherwise use the full path
+  
 
 # if the trimTracksOut file does not exist, create it
 if [ ! -f "$trimTracksOut" ]; then
@@ -17,18 +17,18 @@ if [ ! -f "$trimTracksOut" ]; then
 # https://github.com/tidwall/gjson/blob/master/SYNTAX.md 👍 👍 👍 👍 👍 👍
 # 👍 👍 👍 👍 👍 👍👍 👍 👍 👍 👍 👍👍 👍 👍 👍 👍 👍👍 👍 👍 👍 👍 👍
 # catnames-cli: https://github.com/rotblauer/cattracks-names
-
-  zcat $masterjson \
+# mac not like zcat zcat, need cat zcat
+  cat $masterjson|zcat \
   |catnames-cli modify --name-attribute 'properties.Name' --sanitize true \
   |go run main.go \
-    --match-all '#(properties.Accuracy<10),#(properties.Activity!=""),#(properties.Activity!="unknown")' \
+    --match-all '#(properties.Speed<50),#(properties.Accuracy<10),#(properties.Activity!=""),#(properties.Activity!="unknown")' \
     --match-any '#(properties.Name="ia"),#(properties.Name="rye")' \
     filter \
-  |gzip  > $trimTracksOut
-
+    |gzip  > $trimTracksOut
+    
 else
     echo "File $trimTracksOut already exists"
-
+    
 fi
 
 # run main.py on the trimTracksOut file
