@@ -22,7 +22,7 @@ if [ ! -f "$trimTracksOut" ]; then
   |catnames-cli modify --name-attribute 'properties.Name' --sanitize true \
   |go run main.go \
     --match-all '#(properties.Speed<50),#(properties.Accuracy<10),#(properties.Activity!=""),#(properties.Activity!="unknown")' \
-    --match-any '#(properties.Name="ia"),#(properties.Name="rye")' \
+    --match-any '#(properties.Name=="ia"),#(properties.Name=="rye")' \
     filter \
     |gzip  > $trimTracksOut
     
