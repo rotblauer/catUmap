@@ -12,9 +12,12 @@ import umap.umap_ as umap
 # standardize the columns of interest to a mean of 0 and a standard deviation of 1
 def standardize_columns(df, columns):
     # standardize the columns of interest to a mean of 0 and a standard deviation of 1
+    new_columns = []
     for column in columns:
-        df[column] = (df[column] - df[column].mean()) / df[column].std()
-    return df
+        new_column = column + '_standardized'
+        df[new_column] = (df[column] - df[column].mean()) / df[column].std()
+        new_columns.append(new_column)
+    return df, new_columns
 
 
 # parses an input stream of new line delimited json features
@@ -43,7 +46,7 @@ def run_umap(df, columns, metric_umap, components, n_neighbors, n_epochs, standa
     operating_columns = columns + ['lat', 'lon']
     if standardize:
         print("standardizing columns " + str(operating_columns))
-        df = standardize_columns(df, operating_columns)
+        df, operating_columns = standardize_columns(df, operating_columns)
 
     print("running umap on columns " + str(operating_columns) + " with metric " + metric_umap)
     embedding = umap.UMAP(n_components=components, output_metric=metric_umap,

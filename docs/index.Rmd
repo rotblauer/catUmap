@@ -16,13 +16,39 @@ theme_set(theme_bw(10))
 
 ```{r }
 
-df <- fread("../output/50.2.umap.tsv.gz")
-df$latScale=squish(scale(df$lat),-2,2)
-df$lonScale = squish(scale(df$lon),-2,2)
-df$SpeedScale = squish(scale(df$Speed),0,50)
+
 # map the lat lon to US states
-library(maps)
+# library(maps)
 library(mapdata)
+library(sp)
+library(raster)
+library(rworldmap)
+
+dfWithIndicesCache = "../output/data.with.indices.Rdata"
+if (!file.exists(dfWithIndicesCache)) {
+  df <- fread("../output/50.2.umap.tsv.gz")
+  df[, c("lat", "lon") := NULL]
+  raw <- fread("../output/raw.tsv.gz")
+  df = cbind(df, raw[, c("lat", "lon")])
+  countriesSP <- getMap(resolution = 'low')
+  pointsSP = SpatialPoints(df[, c("lon", "lat")], proj4string = CRS(proj4string(countriesSP)))
+  indices = over(pointsSP, countriesSP)
+  
+  usaSP = raster::getData("GADM", country = "USA", level = 1)
+  usaSP = spTransform(usaSP, CRS(proj4string(countriesSP)))
+  indicesUSA = over(pointsSP, usaSP)
+  
+  df = cbind(df, indices)
+  df = cbind(df, indicesUSA)
+  save(df, file = dfWithIndicesCache)
+  
+}
+load(dfWithIndicesCache)
+```
+
+
+```{r}
+
 
 metricTypes <- c("euclidean", "haversine")
 
@@ -49,8 +75,43 @@ skim(df)
 ```{r echo=FALSE,dev='jpeg',dpi=300}
 # set point size to 0.5 for all plots
 size <- 0.1
+dfUSA = df[df$GU_A3 == "USA", ]
+df100000 = dfUSA[sample(1:nrow(dfUSA), 100000),]
+
+p <-
+  ggplot(df100000,
+         aes(x = umap_euclidean0, y = umap_euclidean1, color = NAME_1)) + geom_point(alpha =
+                                                                                       0.5, size =
+                                                                                       size)
+p
+
+p <-
+  ggplot(df100000,
+         aes(x = umap_euclidean0, y = umap_euclidean1, color = Speed)) + geom_point(alpha =
+                                                                                       0.5, size =
+                                                                                       size)
+p
+
+p <-
+  ggplot(df100000,
+         aes(x = umap_euclidean0, y = umap_euclidean1, color = Accuracy)) + geom_point(alpha =
+                                                                                       0.5, size =
+                                                                                       size)
+# plot with viridis color scale 
+# colors=R
+p
+# p <- p + scale_color_viridis()
 
 
+
+p <-
+  ggplot(df100000, aes(x = lon, y = lat, color = NAME_1)) + geom_point(alpha =
+                                                                        0.5, size =
+                                                                        size)
+p
+```
+
+```{r eval=FALSE}
 for (metricType in metricTypes) {
   umap_0 = paste0("umap_", metricType, "0")
   umap_1 = paste0("umap_", metricType, "1")
@@ -68,6 +129,10 @@ for (metricType in metricTypes) {
   # base =
   p <-
     ggplot(df, aes(x = umap_0, y = umap_1, color = Activity)) + geom_point(alpha =
+                                                                             0.5, size =
+                                                                             size) + ggtitle(paste("Cat UMAP", metricType))
+   p <-
+    ggplot(df, aes(x = umap_0, y = umap_1, color = GU_A3)) + geom_point(alpha =
                                                                              0.5, size =
                                                                              size) + ggtitle(paste("Cat UMAP", metricType))
   # ignore the alpha in the legend
