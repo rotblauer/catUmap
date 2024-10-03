@@ -7,60 +7,33 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=12, fig.height=8)
 library(data.table)
 library(plotly)
 library(skimr)
-library(scales)
-theme_set(theme_bw(10))
-```
-
-```{r }
-
-
-# map the lat lon to US states
-# library(maps)
-library(mapdata)
 library(sp)
-library(raster)
 library(rworldmap)
+
+theme_set(theme_bw(10))
+
 
 dfWithIndicesCache = "../output/data.with.indices.Rdata"
 if (!file.exists(dfWithIndicesCache)) {
-  df <- fread("../output/50.2.umap.tsv.gz")
-  df[, c("lat", "lon") := NULL]
-  raw <- fread("../output/raw.tsv.gz")
-  df = cbind(df, raw[, c("lat", "lon")])
+  df <- fread("../output/umap_100_100_euclidean.cluster_x_y_z_Speed.tf_TRUE.txt.gz")
+  
   countriesSP <- getMap(resolution = 'low')
   pointsSP = SpatialPoints(df[, c("lon", "lat")], proj4string = CRS(proj4string(countriesSP)))
   indices = over(pointsSP, countriesSP)
-  
-  usaSP = raster::getData("GADM", country = "USA", level = 1)
-  usaSP = spTransform(usaSP, CRS(proj4string(countriesSP)))
-  indicesUSA = over(pointsSP, usaSP)
-  
   df = cbind(df, indices)
-  df = cbind(df, indicesUSA)
-  save(df, file = dfWithIndicesCache)
+  # save(df, file = dfWithIndicesCache)
+  url = 'https://www2.census.gov/geo/tiger/GENZ2020/shp/cb_2020_us_county_500k.zip'
+  download.file(url, destfile = "../output/cb_2020_us_county_500k.zip")
+  unzip("../output/cb_2020_us_county_500k.zip", exdir = "../output/")
+  shape <- read_sf("../output/cb_2020_us_county_500k.shp")
   
 }
 load(dfWithIndicesCache)
-```
 
-
-```{r}
-
-
-metricTypes <- c("euclidean", "haversine")
-
-
-# https://umap-learn.readthedocs.io/en/latest/embedding_space.html
-# transformations to 2d
-# x = np.sin(sphere_mapper.embedding_[:, 0]) * np.cos(sphere_mapper.embedding_[:, 1])
-# y = np.sin(sphere_mapper.embedding_[:, 0]) * np.sin(sphere_mapper.embedding_[:, 1])
-# z = np.cos(sphere_mapper.embedding_[:, 0])
-#
-# x = np.arctan2(x, y)
-# y = -np.arccos(z)
 ```
 
 ## summary
@@ -76,77 +49,20 @@ skim(df)
 # set point size to 0.5 for all plots
 size <- 0.1
 dfUSA = df[df$GU_A3 == "USA", ]
-df100000 = dfUSA[sample(1:nrow(dfUSA), 100000),]
-
-p <-
-  ggplot(df100000,
-         aes(x = umap_euclidean0, y = umap_euclidean1, color = NAME_1)) + geom_point(alpha =
-                                                                                       0.5, size =
-                                                                                       size)
-p
-
-p <-
-  ggplot(df100000,
-         aes(x = umap_euclidean0, y = umap_euclidean1, color = Speed)) + geom_point(alpha =
-                                                                                       0.5, size =
-                                                                                       size)
-p
-
-p <-
-  ggplot(df100000,
-         aes(x = umap_euclidean0, y = umap_euclidean1, color = Accuracy)) + geom_point(alpha =
-                                                                                       0.5, size =
-                                                                                       size)
-# plot with viridis color scale 
-# colors=R
-p
-# p <- p + scale_color_viridis()
-
 
 
 p <-
-  ggplot(df100000, aes(x = lon, y = lat, color = NAME_1)) + geom_point(alpha =
-                                                                        0.5, size =
-                                                                        size)
+  ggplot(dfUSA, aes(x = umap_1, y = umap_2, color = Name)) + geom_point(alpha =
+                                                                          0.5, size = size)
 p
-```
 
-```{r eval=FALSE}
-for (metricType in metricTypes) {
-  umap_0 = paste0("umap_", metricType, "0")
-  umap_1 = paste0("umap_", metricType, "1")
-  if (metricType == "haversine") {
-    df$x <- sin(df[, ..umap_0]) * cos(df[, ..umap_1])
-    df$y <- sin(df[, ..umap_0]) * sin(df[, ..umap_1])
-    df$z <- cos(df[, ..umap_0])
-    
-    df$umap_0 <- atan2(df$x, df$y)
-    df$umap_1 <- -acos(df$z)
-  } else{
-    df$umap_0 <- df[, ..umap_0]
-    df$umap_1 <- df[, ..umap_1]
-  }
-  # base =
-  p <-
-    ggplot(df, aes(x = umap_0, y = umap_1, color = Activity)) + geom_point(alpha =
-                                                                             0.5, size =
-                                                                             size) + ggtitle(paste("Cat UMAP", metricType))
-   p <-
-    ggplot(df, aes(x = umap_0, y = umap_1, color = GU_A3)) + geom_point(alpha =
-                                                                             0.5, size =
-                                                                             size) + ggtitle(paste("Cat UMAP", metricType))
-  # ignore the alpha in the legend
-  p <-p + guides(color = guide_legend(override.aes = list(alpha = 1,size = 2)))
-  print(p)
-  
-  # color by name
-  p <-
-    ggplot(df, aes(x = umap_0, y = umap_1, color = Name)) + geom_point(alpha =
-                                                                         0.5, size =
-                                                                         size) + ggtitle(paste("Cat UMAP", metricType))
-  p <- p + guides(color = guide_legend(override.aes = list(alpha = 1,size = 2)))
-  print(p)
-  
-}
+
+p <-
+  ggplot(dfUSA, aes(x = umap_1, y = umap_2, color = Activity)) + geom_point(alpha =
+                                                                              0.5, size = size)
+p
+
+p + facet_wrap( ~ Activity)
+p + facet_wrap(~ Name)
 
 ```
