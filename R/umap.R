@@ -1,4 +1,4 @@
-library(umap)
+library(uwot)
 library(data.table)
 library(optparse)
 
@@ -13,13 +13,13 @@ option_list = list(
   make_option(
     c("-n", "--n_neighbors"),
     type = "integer",
-    default = 100,
+    default = 50,
     help = "n_neighbors"
   ),
   make_option(
     c("-s", "--select"),
     type = "integer",
-    default = 20,
+    default = 10,
     help = "select"
   ),
   make_option(
@@ -84,15 +84,16 @@ if (file.exists(umapOutput)) {
   # stop()
   print(paste0("running umap for ", umapOutput))
   
-  umapConfig = umap.defaults
-  umapConfig$n_neighbors = n_neighbor
-  umapConfig$metric = distanceType
-  umapConfig$verbose = TRUE
-  umapConfig$random_state = 42
-  umap = umap(subdf, config = umapConfig)
+  umap = umap2(
+    X = subdf,
+    n_neighbors = n_neighbor,
+    metric = distanceType,
+    n_components = 2,
+    seed = 42
+  )
   
-  sub$umap_1 = umap$layout[, 1]
-  sub$umap_2 = umap$layout[, 2]
+  sub$umap_1 = umap[, 1]
+  sub$umap_2 = umap[, 2]
   
   gzOut = gzfile(umapOutput, "w")
   

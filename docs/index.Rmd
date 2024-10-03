@@ -11,26 +11,34 @@ knitr::opts_chunk$set(fig.width=12, fig.height=8)
 library(data.table)
 library(plotly)
 library(skimr)
-library(sp)
+library(sf)
 library(rworldmap)
 
 theme_set(theme_bw(10))
 
-
-dfWithIndicesCache = "../output/data.with.indices.Rdata"
+inputFile = "../output/umap_50_10_euclidean.cluster_x_y_z_Speed.tf_TRUE.txt.gz"
+dfWithIndicesCache = paste0(inputFile, "indices.RData")
 if (!file.exists(dfWithIndicesCache)) {
-  df <- fread("../output/umap_100_100_euclidean.cluster_x_y_z_Speed.tf_TRUE.txt.gz")
-  
+  df <- fread(inputFile)
   countriesSP <- getMap(resolution = 'low')
   pointsSP = SpatialPoints(df[, c("lon", "lat")], proj4string = CRS(proj4string(countriesSP)))
   indices = over(pointsSP, countriesSP)
   df = cbind(df, indices)
   # save(df, file = dfWithIndicesCache)
-  url = 'https://www2.census.gov/geo/tiger/GENZ2020/shp/cb_2020_us_county_500k.zip'
-  download.file(url, destfile = "../output/cb_2020_us_county_500k.zip")
-  unzip("../output/cb_2020_us_county_500k.zip", exdir = "../output/")
+  if (!file.exists("../output/cb_2020_us_county_500k.shp")) {
+    url = 'https://www2.census.gov/geo/tiger/GENZ2020/shp/cb_2020_us_county_500k.zip'
+    download.file(url, destfile = "../output/cb_2020_us_county_500k.zip")
+    unzip("../output/cb_2020_us_county_500k.zip", exdir = "../output/")
+    
+  }
   shape <- read_sf("../output/cb_2020_us_county_500k.shp")
-  
+  dfc = df[, c("lon", "lat")]
+  coordinates(dfc) <- c("lon", "lat")
+  proj4string(dfc) <- CRS("+init=epsg:4269")
+  dfc <- st_as_sf(dfc)
+  indices = st_join(dfc, shape)
+  df = cbind(df, indices)
+  save(df, file = dfWithIndicesCache)
 }
 load(dfWithIndicesCache)
 
@@ -39,6 +47,7 @@ load(dfWithIndicesCache)
 ## summary
 
 ```{r}
+df$NAME = NULL
 skim(df)
 
 ```
@@ -46,8 +55,8 @@ skim(df)
 ## Cat umaps
 
 ```{r echo=FALSE,dev='jpeg',dpi=300}
-# set point size to 0.5 for all plots
 size <- 0.1
+
 dfUSA = df[df$GU_A3 == "USA", ]
 
 
