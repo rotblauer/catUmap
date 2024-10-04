@@ -10,11 +10,18 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(fig.width=12, fig.height=8)
 library(data.table)
 library(plotly)
-library(skimr)
 library(sf)
 library(rworldmap)
 
-theme_set(theme_bw(10))
+myColor <- rev(RColorBrewer::brewer.pal(11, "Spectral"))
+myColor_scale_fill <- scale_fill_gradientn(colours = myColor)
+myPalette <-
+  colorRampPalette(rev(RColorBrewer::brewer.pal(11, "Spectral")))
+
+colors = myPalette(150)
+
+
+theme_set(theme_bw(14))
 
 inputFile = "../output/umap_50_10_euclidean.cluster_x_y_z_Speed.tf_TRUE.txt.gz"
 dfWithIndicesCache = paste0(inputFile, "indices.RData")
@@ -41,37 +48,58 @@ if (!file.exists(dfWithIndicesCache)) {
   save(df, file = dfWithIndicesCache)
 }
 load(dfWithIndicesCache)
-
+ df$NAME = NULL
 ```
 
-## summary
-
-```{r}
-df$NAME = NULL
-skim(df)
-
-```
 
 ## Cat umaps
 
 ```{r echo=FALSE,dev='jpeg',dpi=300}
 size <- 0.1
 
-dfUSA = df[df$GU_A3 == "USA", ]
 
 
 p <-
-  ggplot(dfUSA, aes(x = umap_1, y = umap_2, color = Name)) + geom_point(alpha =
-                                                                          0.5, size = size)
+  ggplot(df, aes(x = umap_1, y = umap_2, color = Speed)) + geom_point(alpha =
+                                                                          0.5, size = size)+ scale_color_gradientn(colors = colors) + guides(color = guide_legend(override.aes = list(alpha = 1,size= 3) ) )
+
 p
 
 
 p <-
-  ggplot(dfUSA, aes(x = umap_1, y = umap_2, color = Activity)) + geom_point(alpha =
-                                                                              0.5, size = size)
+  ggplot(df, aes(x = umap_1, y = umap_2, color = Name)) + geom_point(alpha =
+                                                                          0.5, size = size)+ guides(color = guide_legend(override.aes = list(alpha = 1,size= 3) ) )
+p
+
+
+p <-
+  ggplot(df, aes(x = umap_1, y = umap_2, color = Activity)) + geom_point(alpha =
+                                                                              0.5, size = size)+ guides(color = guide_legend(override.aes = list(alpha = 1,size= 3) ) )
 p
 
 p + facet_wrap( ~ Activity)
 p + facet_wrap(~ Name)
 
+
+p <-
+  ggplot(df, aes(x = umap_1, y = umap_2, color = GU_A3)) + geom_point(alpha =
+                                                                              0.5, size = size)+ guides(color = guide_legend(override.aes = list(alpha = 1,size= 3) ) )
+p
+
+p <-
+  ggplot(df, aes(x = umap_1, y = umap_2, color = STUSPS)) + geom_point(alpha =
+                                                                         0.5, size = size)+ guides(color = guide_legend(override.aes = list(alpha = 1,size= 3) ) )
+p
+
+stateCounts = df[, .N, by = STUSPS]
+# hist(log10(stateCounts$N))
+stateCounts10K = stateCounts[N > 10000]
+dfTrim = df[STUSPS %in% stateCounts10K$STUSPS]
+p <-
+  ggplot(dfTrim, aes(x = umap_1, y = umap_2, color = STUSPS)) + geom_point(alpha =
+                                                                             0.5, size = size) + guides(color = guide_legend(override.aes = list(alpha = 1, size = 3)))
+p
+p + facet_wrap(~ Name)
+p + facet_wrap( ~ STUSPS)
+p + facet_wrap( ~ Activity)
 ```

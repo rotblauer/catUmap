@@ -19,7 +19,7 @@ option_list = list(
   make_option(
     c("-s", "--select"),
     type = "integer",
-    default = 10,
+    default = 1,
     help = "select"
   ),
   make_option(
@@ -83,7 +83,6 @@ if (file.exists(umapOutput)) {
   subdf = sub[, ..columnList]
   # stop()
   print(paste0("running umap for ", umapOutput))
-  
   umap = umap2(
     X = subdf,
     n_neighbors = n_neighbor,

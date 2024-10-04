@@ -21,10 +21,11 @@ if [ ! -f "$trimTracksOut" ]; then
   cat $masterjson|zcat \
   |catnames-cli modify --name-attribute 'properties.Name' --sanitize true \
   |go run main.go \
-    --match-all '#(properties.Speed<50),#(properties.Accuracy<10),#(properties.Activity!=""),#(properties.Activity!="unknown")' \
+    --match-all '#(properties.Speed<50),#(properties.Accuracy<10),#(properties.Activity!="")' \
     --match-any '#(properties.Name=="ia"),#(properties.Name=="rye")' \
     filter \
     |gzip  > $trimTracksOut
+    # ,#(properties.Activity!="unknown")
     
 else
     echo "File $trimTracksOut already exists"
