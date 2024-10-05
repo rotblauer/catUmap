@@ -1,6 +1,6 @@
 ---
 title: "CatUMap"
-author: "JL"
+author: "Cat"
 date: "`r Sys.Date()`"
 output: 
   html_document: 
