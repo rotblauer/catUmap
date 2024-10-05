@@ -37,7 +37,7 @@ option_list = list(
   make_option(
     c("-t", "--transform"),
     type = "logical",
-    default = TRUE,
+    default = FALSE,
     help = "boolean to transform lat lon to xyz"
   )
 )

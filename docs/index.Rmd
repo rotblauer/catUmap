@@ -23,7 +23,7 @@ colors = myPalette(150)
 
 theme_set(theme_bw(14))
 
-inputFile = "../output/umap_50_10_euclidean.cluster_x_y_z_Speed.tf_TRUE.txt.gz"
+inputFile = "../output/umap_50_1_euclidean.cluster_x_y_z_Speed.tf_TRUE.txt.gz"
 dfWithIndicesCache = paste0(inputFile, "indices.RData")
 if (!file.exists(dfWithIndicesCache)) {
   df <- fread(inputFile)
