@@ -14,7 +14,7 @@ option_list = list(
   make_option(
     c("-n", "--n_neighbors"),
     type = "integer",
-    default = 50,
+    default = 70,
     help = "n_neighbors"
   ),
   make_option(

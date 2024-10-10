@@ -5,9 +5,6 @@ library(sf)
 library(knitr)
 library(rworldmap)
 
-
-# parse the command line arguments
-# options for figure height/width, alpha, and point size
 option_list = list(
   make_option(
     c("-i", "--input"),
@@ -56,7 +53,7 @@ theme_set(theme_bw(14))
 
 dfWithIndicesCache = paste0(opt$input, "indices.RData")
 if (!file.exists(dfWithIndicesCache)) {
-  df <- fread(inputFile)
+  df <- fread(opt$input)
   countriesSP <- getMap(resolution = 'low')
   pointsSP = SpatialPoints(df[, c("lon", "lat")], proj4string = CRS(proj4string(countriesSP)))
   indices = over(pointsSP, countriesSP)
@@ -97,3 +94,40 @@ if (!file.exists(out)) {
     dpi = 400,
   )
 }
+
+p <-
+  ggplot(df, aes(x = umap_2, y = umap_1, color = Activity)) + geom_point(alpha =
+                                                                           alpha, size = size) + guides(color = guide_legend(override.aes = list(alpha = 1, size = 3)))
+
+out = paste0(opt$input, "Activity.jpg")
+if (!file.exists(out)) {
+  ggsave(
+    out,
+    p,
+    width = opt$width,
+    height = opt$height,
+    dpi = 400,
+  )
+}
+out = paste0(opt$input, "Activity_facet.jpg")
+if (!file.exists(out)) {
+  ggsave(
+    out,
+    p + facet_wrap( ~ Activity),
+    width = opt$width,
+    height = opt$height,
+    dpi = 400,
+  )
+}
+
+out = paste0(opt$input, "Activity_Name_facet.jpg")
+if (!file.exists(out)) {
+  ggsave(
+    out,
+    p + facet_wrap(~ Name),
+    width = opt$width,
+    height = opt$height,
+    dpi = 400,
+  )
+}
+
