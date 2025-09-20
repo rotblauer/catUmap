@@ -85,6 +85,10 @@ if __name__ == '__main__':
         # write the dataframe to a tsv.gz file
         iDf.to_csv(args.outputRaw, sep='\t', compression='gzip', index=False)
     print(args.metrics)
+    # if metrics is "none", exit
+    if args.metrics == ["none"]:
+        sys.exit(0)
+
     for metric in args.metrics:
         iDf = run_umap(iDf, args.columns, metric, args.components, args.n_neighbors, args.n_epochs, args.standardize)
     # write the dataframe to a tsv.gz file

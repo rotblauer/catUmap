@@ -2,6 +2,7 @@ library(uwot)
 library(RcppHNSW)
 library(data.table)
 library(optparse)
+library(rnndescent)
 
 # parse the command line arguments
 option_list = list(
@@ -110,39 +111,18 @@ if (file.exists(umapOutput)) {
 } else {
   sub = df[seq(1, nrow(df), select), ]
   subdf = sub[, ..columnList]
-  # stop()
   print(paste0("running umap for ", umapOutput))
-  tryCatch({
-    umap = umap2(
-      X = subdf,
-      n_neighbors = n_neighbor,
-      metric = distanceType,
-      n_components = 2,
-      seed = 42,
-      verbose = TRUE,
-      n_threads = opt$threads,
-      ret_model = opt$embed
-    )
-  }, error = function(e) {
-    print(e)
-    print(paste0("error in umap for ", umapOutput))
-    print(paste0("switching nn_method to nndescent"))
-    library(rnndescent)
-    umap = umap2(
-      X = subdf,
-      n_neighbors = n_neighbor,
-      metric = distanceType,
-      n_components = 2,
-      seed = 42,
-      verbose = TRUE,
-      nn_method = "nndescent",
-      n_threads = opt$threads,
-      ret_model = opt$embed
-      
-    )
-  })
-  
-  
+  umap = umap2(
+    X = subdf,
+    n_neighbors = n_neighbor,
+    metric = distanceType,
+    n_components = 2,
+    seed = 42,
+    verbose = TRUE,
+    n_threads = opt$threads,
+    nn_method = "nndescent",
+    ret_model = opt$embed
+  )
   if (opt$embed) {
     print("embedding to full dataset")
     umap =  umap_transform(df[, ..columnList],

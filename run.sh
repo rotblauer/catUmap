@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # if the first argument is undefined, set it to a default value
-masterjson=${1:-"/Volumes/SandCat/tdata/master.json.gz"}
+masterjson=${1:-"$HOME/tdata/master.json.gz"}
 trimTracksOut=${2:-"output/output.json.gz"}
 components=${3:-"2"}
 n_neighbors=${4:-"50"}
@@ -43,7 +43,7 @@ cat $trimTracksOut \
 | awk 'NR % 10 == 0' \
 |.venv/bin/python main.py \
 --n_neighbors $n_neighbors \
---metrics "euclidean" "haversine" \
+--metrics "none" \
 --output "output/$n_neighbors.$components.umap.tsv.gz" \
 --components $components \
 --outputRaw "output/raw.tsv.gz" \

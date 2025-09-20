@@ -21,13 +21,13 @@ option_list = list(
   make_option(
     c("-w", "--width"),
     type = "numeric",
-    default = 18,
+    default = 9,
     help = "width"
   ),
   make_option(
     c("-e", "--height"),
     type = "numeric",
-    default = 14,
+    default = 7,
     help = "height"
   ),
   make_option(
@@ -35,7 +35,13 @@ option_list = list(
     type = "numeric",
     default = 0.25,
     help = "point size"
-  )
+  ),
+  make_option(
+    c("-d", "--dpi"),
+    type = "numeric",
+    default = 300,
+    help = "point size"
+  ),
 )
 
 
@@ -83,7 +89,9 @@ p <-
   ggplot(df, aes(x = umap_2, y = umap_1, color = Speed)) +
   geom_point(alpha = alpha, size = size) +
   scale_color_gradientn(colors = colors) +
-  guides(color = guide_legend(override.aes = list(alpha = 1, size = 3))) + ggtitle(paste0("Speed - ", gsub(".hnsw.txt.gz", "", basename(opt$input))))
+  guides(color = guide_legend(override.aes = list(alpha = 1, size = 3))) +
+  ggtitle(paste0("Speed - ", gsub(".hnsw.txt.gz", "", basename(opt$input))))
+
 out = paste0(opt$input, "Speed.jpg")
 if (!file.exists(out)) {
   ggsave(
@@ -91,13 +99,14 @@ if (!file.exists(out)) {
     p,
     width = opt$width,
     height = opt$height,
-    dpi = 400,
+    dpi = opt$dpi,
   )
 }
 
 p <-
-  ggplot(df, aes(x = umap_2, y = umap_1, color = Activity)) + geom_point(alpha =
-                                                                           alpha, size = size) + guides(color = guide_legend(override.aes = list(alpha = 1, size = 3)))
+  ggplot(df, aes(x = umap_2, y = umap_1, color = Activity)) +
+  geom_point(alpha = alpha, size = size) +
+  guides(color = guide_legend(override.aes = list(alpha = 1, size = 3)))
 
 out = paste0(opt$input, "Activity.jpg")
 if (!file.exists(out)) {
@@ -106,7 +115,7 @@ if (!file.exists(out)) {
     p,
     width = opt$width,
     height = opt$height,
-    dpi = 400,
+    dpi = opt$dpi,
   )
 }
 out = paste0(opt$input, "Activity_facet.jpg")
@@ -116,7 +125,7 @@ if (!file.exists(out)) {
     p + facet_wrap( ~ Activity),
     width = opt$width,
     height = opt$height,
-    dpi = 400,
+    dpi = opt$dpi,
   )
 }
 
@@ -127,7 +136,6 @@ if (!file.exists(out)) {
     p + facet_wrap(~ Name),
     width = opt$width,
     height = opt$height,
-    dpi = 400,
+    dpi = opt$dpi,
   )
 }
-
