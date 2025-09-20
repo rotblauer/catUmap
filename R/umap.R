@@ -1,10 +1,10 @@
 library(uwot)
-library(RcppHNSW)
 library(data.table)
 library(optparse)
 library(rnndescent)
 
 # parse the command line arguments
+setwd("~/git/catUmap/scripts/")
 option_list = list(
   make_option(
     c("-i", "--input"),
@@ -75,14 +75,25 @@ scaleCols = strsplit(opt$scaleCols, ",")[[1]]
 columnList = c("lat", "lon")
 
 if (opt$transform) {
-  df[, c("x", "y", "z") := list(cos(lat) * cos(lon), cos(lat) * sin(lon), sin(lat))]
+  deg2rad <- pi / 180
+  df[, lat_rad := lat * deg2rad]
+  df[, lon_rad := lon * deg2rad]
+  df[, c("x", "y", "z") := list(cos(lat_rad) * cos(lon_rad),
+                                cos(lat_rad) * sin(lon_rad),
+                                sin(lat_rad))]
+  # clean up intermediate if you want
+  df[, c("lat_rad", "lon_rad") := NULL]
+  # df[, c("x", "y", "z") := list(cos(lat) * cos(lon), cos(lat) * sin(lon), sin(lat))]
   columnList = c("x", "y", "z")
 }
 
-for (col in scaleCols) {
+stop()
+df$speedOrig = df$Speed
+for (col in c(scaleCols, columnList)) {
   print(paste0("scaling ", col))
   df[[col]] = scale(df[[col]])
 }
+
 
 columnList = c(columnList, additionalColumns)
 print(paste0("clustering on ", paste0(columnList, collapse = ",")))
@@ -103,7 +114,7 @@ umapOutput <-
     paste0(scaleCols, collapse = "_"),
     ".embed_full",
     opt$embed,
-    ".hnsw.txt.gz"
+    ".hnsw.v2.txt.gz"
   )
 
 if (file.exists(umapOutput)) {
