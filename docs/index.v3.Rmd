@@ -1,0 +1,122 @@
+---
+title: "CatUMap"
+author: "Cat"
+date: "`r Sys.Date()`"
+output: 
+  html_document: 
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=18, fig.height=14)
+library(data.table)
+library(plotly)
+library(sf)
+library(knitr)
+library(rworldmap)
+library(scales)
+
+myColor <- rev(RColorBrewer::brewer.pal(11, "Spectral"))
+myColor_scale_fill <- scale_fill_gradientn(colours = myColor)
+myPalette <-
+  colorRampPalette(rev(RColorBrewer::brewer.pal(11, "Spectral")))
+
+colors = myPalette(150)
+
+
+theme_set(theme_bw(14))
+
+inputFile = "../output/umap_25_10_euclidean.cluster_x_y_z_Speed.tf_TRUE.scale_Speed.embed_fullTRUE.hnsw.v3.txt.gz"
+
+dfWithIndicesCache = paste0(inputFile, "indices.RData")
+if (!file.exists(dfWithIndicesCache)) {
+  df <- fread(inputFile)
+  countriesSP <- getMap(resolution = 'low')
+  pointsSP = SpatialPoints(df[, c("lon", "lat")], proj4string = CRS(proj4string(countriesSP)))
+  indices = over(pointsSP, countriesSP)
+  df = cbind(df, indices)
+  # save(df, file = dfWithIndicesCache)
+  if (!file.exists("../output/cb_2020_us_county_500k.shp")) {
+    url = 'https://www2.census.gov/geo/tiger/GENZ2020/shp/cb_2020_us_county_500k.zip'
+    download.file(url, destfile = "../output/cb_2020_us_county_500k.zip")
+    unzip("../output/cb_2020_us_county_500k.zip", exdir = "../output/")
+    
+  }
+  shape <- read_sf("../output/cb_2020_us_county_500k.shp")
+  dfc = df[, c("lon", "lat")]
+  coordinates(dfc) <- c("lon", "lat")
+  proj4string(dfc) <- CRS("+init=epsg:4269")
+  dfc <- st_as_sf(dfc)
+  indices = st_join(dfc, shape)
+  df = cbind(df, indices)
+  save(df, file = dfWithIndicesCache)
+}
+load(dfWithIndicesCache)
+df$NAME = NULL
+# limit to 1 million rows
+# if (nrow(df) > 1e6) {
+#   set.seed(42)
+#   df = df[sample(.N, 1e5)]
+# }
+```
+
+
+## Cat umaps
+
+```{r echo=FALSE,dev='jpeg',dpi=300}
+size <- 0.01
+alpha=0.15
+
+p <-
+  ggplot(df, aes(x = umap_2, y = umap_1, color = Speed)) + geom_point(alpha =
+                                                                        alpha, size = size) + scale_color_gradientn(colors = colors, name = "Speed zcore")
+
+p
+df$date = as.Date(df$Time)
+
+p <-
+  ggplot(df, aes(x = umap_2, y = umap_1, color = date)) + geom_point(alpha =
+                                                                       alpha, size = size) +
+  scale_color_gradientn(colors = colors,labels = date_format("%Y"),
+    # set breaks at "pretty" date intervals
+    breaks = pretty(df$date, n = 10))
+p
+
+
+p <-
+  ggplot(df, aes(x = umap_2, y = umap_1, color = Name)) + geom_point(alpha =
+                                                                          alpha, size = size)+ guides(color = guide_legend(override.aes = list(alpha = 1,size= 3) ) )
+p
+
+
+p <-
+  ggplot(df, aes(x = umap_2, y = umap_1, color = Activity)) + geom_point(alpha =
+                                                                              alpha, size = size)+ guides(color = guide_legend(override.aes = list(alpha = 1,size= 3) ) )
+p
+
+p + facet_wrap( ~ Activity)
+p + facet_wrap(~ Name)
+
+
+
+# p <-
+#   ggplot(df, aes(x = umap_2, y = umap_1, color = STUSPS)) + geom_point(alpha =
+#                                                                          alpha, size = size)+ guides(color = guide_legend(override.aes = list(alpha = 1,size= 3) ) )
+# p
+
+stateCounts = df[, .N, by = STUSPS]
+stateCounts = stateCounts[order(-N)]
+kable(stateCounts)
+# hist(log10(stateCounts$N))
+stateCounts10K = stateCounts[N > 50000]
+# stateCounts10K=stateCounts
+dfTrim = df[STUSPS %in% stateCounts10K$STUSPS]
+p <-
+  ggplot(dfTrim, aes(x = umap_2, y = umap_1, color = STUSPS)) + geom_point(alpha =
+                                                                             alpha, size = size) + guides(color = guide_legend(override.aes = list(alpha = 1, size = 3)))
+p
+p + facet_wrap(~ Name)
+p + facet_wrap( ~ STUSPS)
+p + facet_wrap( ~ Activity)
+```

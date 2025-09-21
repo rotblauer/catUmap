@@ -59,6 +59,19 @@ option_list = list(
     type = "numeric",
     default = 8,
     help = "number of threads to use for umap2"
+  ),
+  # option to remove "Unknown" activity
+  make_option(
+    c("--removeUnknown"),
+    type = "logical",
+    default = TRUE,
+    help = "remove rows with activity 'Unknown'"
+  ),
+  make_option(
+    c("--includeTime"),
+    type = "logical",
+    default = TRUE,
+    help = "include time features (absolute + cyclical) in clustering"
   )
 )
 
@@ -66,6 +79,13 @@ opt_parser = OptionParser(option_list = option_list)
 opt = parse_args(opt_parser)
 
 df <- fread(opt$input)
+
+if (opt$removeUnknown) {
+  numberBefore = nrow(df)
+  df = df[Activity != "Unknown"]
+  numberAfter = nrow(df)
+  print(paste0("removed ", numberBefore - numberAfter, " rows with Unknown activity"))
+}
 n_neighbor = opt$n_neighbors
 select = opt$select
 distanceType = opt$distanceType
@@ -87,12 +107,31 @@ if (opt$transform) {
   columnList = c("x", "y", "z")
 }
 
-stop()
+
+if (opt$includeTime) {
+  # absolute numeric time
+  df[, Time_num := as.numeric(difftime(Time, min(Time), units = "secs"))]
+  
+  # cyclic time-of-day (sine/cosine encoding)
+  df[, hour := as.numeric(format(Time, "%H")) + as.numeric(format(Time, "%M")) /
+       60]
+  df[, hour_rad := 2 * pi * hour / 24]
+  df[, time_sin := sin(hour_rad)]
+  df[, time_cos := cos(hour_rad)]
+  df[, c("hour", "hour_rad") := NULL]
+  
+  additionalColumns = c(additionalColumns, "Time_num", "time_sin", "time_cos")
+  scaleCols = c(scaleCols, "Time_num", "time_sin", "time_cos")
+}
+
+
+# stop()
 df$speedOrig = df$Speed
 for (col in c(scaleCols, columnList)) {
   print(paste0("scaling ", col))
   df[[col]] = scale(df[[col]])
 }
+
 
 
 columnList = c(columnList, additionalColumns)
@@ -108,13 +147,14 @@ umapOutput <-
     distanceType,
     ".cluster_",
     paste0(columnList, collapse = "_"),
+    if (opt$includeTime) ".time" else "",
     ".tf_",
     opt$transform,
     ".scale_",
     paste0(scaleCols, collapse = "_"),
     ".embed_full",
     opt$embed,
-    ".hnsw.v2.txt.gz"
+    ".hnsw.v4.txt.gz"
   )
 
 if (file.exists(umapOutput)) {
@@ -123,6 +163,7 @@ if (file.exists(umapOutput)) {
   sub = df[seq(1, nrow(df), select), ]
   subdf = sub[, ..columnList]
   print(paste0("running umap for ", umapOutput))
+  # stop()
   umap = umap2(
     X = subdf,
     n_neighbors = n_neighbor,
@@ -134,17 +175,45 @@ if (file.exists(umapOutput)) {
     nn_method = "nndescent",
     ret_model = opt$embed
   )
+  # ---------------- Batched embedding using HNSW (RcppHNSW) ------------------
   if (opt$embed) {
-    print("embedding to full dataset")
-    umap =  umap_transform(df[, ..columnList],
-                           umap,
-                           n_threads = opt$threads,
-                           verbose = TRUE)
-    sub = df
+    cat("Embedding full dataset in batches using an HNSW index built on the sample\n")
+    
+    # ---- Parameters to tune ----
+    
+    batch_size <- 500000
+    N <- nrow(df)
+    starts <- seq(1, N, by = batch_size)
+    
+    umap1 <- numeric(N)
+    umap2 <- numeric(N)
+    
+    for (s in starts) {
+      e <- min(s + batch_size - 1, N)
+      cat("Transforming rows", s, "to", e, "\n")
+      
+      emb <- uwot::umap_transform(
+        X = df[s:e, ..columnList],
+        model = umap,
+        n_threads = opt$threads,
+        verbose = TRUE
+      )
+      
+      umap1[s:e] <- emb[, 1]
+      umap2[s:e] <- emb[, 2]
+    }
+    
+    # attach embeddings to the full table (sub will become the full dataset)
+    sub <- df
+    sub[, umap_1 := umap1]
+    sub[, umap_2 := umap2]
+    
+  } else {
+    print("not embedding full dataset")
+    sub$umap_1 = umap[, 1]
+    sub$umap_2 = umap[, 2]
   }
   
-  sub$umap_1 = umap[, 1]
-  sub$umap_2 = umap[, 2]
   
   
   gzOut = gzfile(umapOutput, "w")
